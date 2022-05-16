@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import { ERC20 } from "@rari-capital/solmate/src/tokens/ERC20.sol";
 import { SafeTransferLib } from "@rari-capital/solmate/src/utils/SafeTransferLib.sol";
-import {FixedPointMathLib} from "./FixedPointMath.sol";
+import { FixedPointMathLib } from "./FixedPointMath.sol";
 
 /// @notice Minimal ERC4646 tokenized vault implementation.
 /// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/mixins/ERC4626.sol)
@@ -73,6 +73,7 @@ abstract contract ERC4626 is ERC20 {
 
         emit Withdraw(from, to, amount);
 
+        // ignore this. DOES NOT DO ANYTHING
         beforeWithdraw(amount);
 
         asset.safeTransfer(to, amount);
@@ -83,13 +84,17 @@ abstract contract ERC4626 is ERC20 {
         address to,
         address from
     ) public virtual returns (uint256 amount) {
+        // I beleive allowed is the maximum amount of shares a user can redeem
+        // which should be their total balance (can't spend more than you have)
         uint256 allowed = allowance[from][msg.sender]; // Saves gas for limited approvals.
 
+        // decrease the user's balance by the amount, shares
         if (msg.sender != from && allowed != type(uint256).max) allowance[from][msg.sender] = allowed - shares;
 
         // Check for rounding error since we round down in previewRedeem.
         require((amount = previewRedeem(shares)) != 0, "ZERO_ASSETS");
 
+        // this is where you actually redeem amount, after the 'safety check' with previewRedeem
         _burn(from, shares);
 
         emit Withdraw(from, to, amount);

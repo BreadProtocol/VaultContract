@@ -57,12 +57,24 @@ contract Controller {
 
     function setVault(address _token, address _vault) public {
         require(msg.sender == strategist || msg.sender == governance, "!strategist");
+        // making sure _token does not already have a vault in the vaults map
+        // do not want to overwrite a vault corresponding to _token
         require(vaults[_token] == address(0), "vault");
         vaults[_token] = _vault;
     }
 
     function approveStrategy(address _token, address _strategy) public {
         require(msg.sender == governance, "!governance");
+        // nested mapping. token address => strategy address => bool
+        // my guess is that the strategy already exists, but is not active
+        // because the strategy address maps to a default value of false
+        // so the strategy is inactive by default
+        // this is where we activate the strategy by setting it to true
+        // example: go to (https://github.com/yearn/yearn-protocol/tree/develop/contracts/strategies)
+        // strategies already exist at the given link.
+        // approvedStrategies[DAI] = [StrategyDAI3Pool, StrategyDAI3PoolV2, StrategyDAICurve]
+        // approvedStrategies[DAI][StrategyDAI3Pool] is initially false. set it to true
+        // approvedStrategies[DAI][StrategyDAI3Pool] = true
         approvedStrategies[_token][_strategy] = true;
     }
 
@@ -82,12 +94,18 @@ contract Controller {
 
     function setStrategy(address _token, address _strategy) public {
         require(msg.sender == strategist || msg.sender == governance, "!strategist");
-        require(approvedStrategies[_token][_strategy] == true, "!approved");
+        require(approvedStrategies[_token][_strategy] == true, "!approved"); // making sure strategy has been approved
 
-        address _current = strategies[_token];
+        address _current = strategies[_token]; // _current is the address of the current strategy for _token
         if (_current != address(0)) {
+            // my guess is that this is to make sure the strategy exists
+            // if the strategy's address is zero, it does not exist
+            // so if the current strategy exists, it has assets in it
+            // we want to remove our assets from a strategy we are no longer using
             Strategy(_current).withdrawAll();
         }
+        // this is where the new strategy is set
+        // MY QUESTION is where do we move our assets to this newly set strategy?
         strategies[_token] = _strategy;
     }
 
@@ -95,10 +113,11 @@ contract Controller {
         address _strategy = strategies[_token];
         address _want = Strategy(_strategy).want();
         if (_want != _token) {
-            address converter = converters[_token][_want];
+            address converter = converters[_token][_want]; // MY GUESS is _token has different converters depending on _want
             IERC20(_token).transfer(converter, _amount);
             _amount = Converter(converter).convert(_strategy);
             IERC20(_want).transfer(_strategy, _amount);
+            // DO NOT KNOW why we call Strategy.deposit() in the ELSE case but not in the IF case
         } else {
             IERC20(_token).transfer(_strategy, _amount);
             Strategy(_strategy).deposit();

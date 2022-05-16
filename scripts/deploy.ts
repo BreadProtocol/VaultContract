@@ -42,7 +42,6 @@ async function main(): Promise<void> {
   await depositSomeUnderlyingToVault();
   await callEarnOnVault();
   await callHarvestFromStrat();
-  await redeemShares();
 
   async function deployController() {
     const controllerFactory = new Controller__factory(deployer);
@@ -92,22 +91,13 @@ async function main(): Promise<void> {
     await vaultBalanceSheet(vaultContract, strategyContract);
   }
 
+  await redeemShares();
+
   async function redeemShares() {
-    // balanceOf is called as a method of vaultcontract.
-    // I believe vaultContract.balanceOf(deployer.address)
-    // gets the balance of share tokens for the user with the account at deployer.address
-    // it gets the users share tokens (tokens because it is ERC4626 which inherits ERC20)
     const userShareTokenBalance = await vaultContract.balanceOf(deployer.address);
     console.log("userSharetoken", ethers.utils.formatUnits(userShareTokenBalance.toString()));
-    // from my understanding of redeem (redeeming shares for equivalent underlying assets),
-    // previewrRedeem does the same thing as redeem, but does not change the state of the blochain.
-    // it's kind of like a 'safety check' to make sure you can actually redeem the input shares
     const userEarningsOnShare: BigNumber = await vaultContract.previewRedeem(userShareTokenBalance);
     console.log("userEarningsOnShare", ethers.utils.formatUnits(userEarningsOnShare.toString()));
-    // this is where you actually redeem shares using redeem(amount, to, from)
-    // in this instance, to and from are the same (deployer.address)
-    // so this user is redeeming their shares and sending the assets to their account
-    // the user can also send the assets redeemed to another user's account (a friend, or anyone)
     await vaultContract.redeem(userShareTokenBalance, deployer.address, deployer.address); // amount, to, from
     await checkSingleBalance(deployer, vaultContract);
     await vaultBalanceSheet(vaultContract, strategyContract);

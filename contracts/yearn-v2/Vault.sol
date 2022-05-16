@@ -39,6 +39,7 @@ contract Vault is ERC20, IERC4626 {
                         DEPOSIT/WITHDRAWAL LOGIC
     //////////////////////////////////////////////////////////////*/
 
+    // users wants to deposit a fixed amount of underlying asset to get equivalent shares
     function deposit(uint256 amount, address to) public override returns (uint256 shares) {
         require((shares = previewDeposit(amount)) != 0, "ZERO_SHARES");
 
@@ -53,6 +54,9 @@ contract Vault is ERC20, IERC4626 {
         afterDeposit(amount);
     }
 
+    // user wants a fixed amount of shares (input)
+    //  mint calculates the equivalent amount of underlying asset (output)
+    // the output amount is transferred from the user to the vault
     function mint(uint256 shares, address to) public override returns (uint256 amount) {
         _mint(to, amount = previewMint(shares));
 
@@ -65,6 +69,8 @@ contract Vault is ERC20, IERC4626 {
         afterDeposit(amount);
     }
 
+    // user wants to withdraw a fixed amount of underlying asset
+    // the equivalent amount of shares is burned
     function withdraw(
         uint256 amount,
         address to,
@@ -85,6 +91,8 @@ contract Vault is ERC20, IERC4626 {
         asset.safeTransfer(to, amount);
     }
 
+    // user wants to redeem a fixed amount of shares
+    // the equivalent underlying asset is transferred from the vault to the user
     function redeem(
         uint256 shares,
         address to,
@@ -149,12 +157,12 @@ contract Vault is ERC20, IERC4626 {
         return (totalFloat * minFloat) / maxFloat;
     }
 
-    /// @notice Optional. Left empty here. (No limit) 
+    /// @notice Optional. Left empty here. (No limit)
     function maxDeposit(address) public pure override returns (uint256) {
         return type(uint256).max;
     }
 
-    /// @notice Optional. Left empty here. (No limit) 
+    /// @notice Optional. Left empty here. (No limit)
     function maxMint(address) public pure override returns (uint256) {
         return type(uint256).max;
     }
@@ -167,6 +175,13 @@ contract Vault is ERC20, IERC4626 {
         return balanceOf[user];
     }
 
+    // mulDivDown() and mulDivUp() is used in the following functions starting with 'preview'
+    // I BELIEVE these mulDivDown() and mulDivUp() are equivalent to convertToAssets()
+    // and convertToShares() functions as defined in the link below
+    // https://soliditydeveloper.com/erc-4626
+    // totalSupply is from ERC20 contract.
+    // I BELIEVE totalSupply is the total amount of the ERC20 tokens
+    // which I BELIEVE is the total supply of minted shares in this case
     function previewDeposit(uint256 amount) public view override returns (uint256 shares) {
         uint256 supply = totalSupply;
 

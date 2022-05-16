@@ -9,21 +9,19 @@ import "./interfaces/Uni.sol";
 import "./interfaces/IController.sol";
 import "hardhat/console.sol";
 
-
-contract StrategyDAICompoundBasic{
-
+contract StrategyDAICompoundBasic {
     address public constant want = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     // Comptroller address for compound.finance
-    Comptroller public constant compound = Comptroller(0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B); 
+    Comptroller public constant compound = Comptroller(0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B);
 
     address public constant comp = address(0xc00e94Cb662C3520282E6f5717214004A7f26888);
     address public constant cDAI = address(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
     address public constant uni = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     // used for comp <> weth <> dai route
-    address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); 
+    address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
-    uint256 public performanceFee = 500;
-    uint256 public constant performanceMax = 10000;
+    uint256 public performanceFee = 500; // 5 percent. 500 / 100 - 5
+    uint256 public constant performanceMax = 10000; // 100 percent
 
     uint256 public withdrawalFee = 50;
     uint256 public constant withdrawalMax = 10000;
@@ -62,6 +60,7 @@ contract StrategyDAICompoundBasic{
         if (_want > 0) {
             IERC20(want).approve(cDAI, 0);
             IERC20(want).approve(cDAI, _want);
+            // uses cToken interface to mint compound DAI (to earn interest) in the amount of _want
             cToken(cDAI).mint(_want);
         }
     }
@@ -82,7 +81,7 @@ contract StrategyDAICompoundBasic{
         uint256 _balance = IERC20(want).balanceOf(address(this));
         if (_balance < _amount) {
             _amount = _withdrawSome(_amount - _balance);
-            _amount = _amount +  _balance;
+            _amount = _amount + _balance;
         }
 
         uint256 _fee = (_amount * withdrawalFee) / withdrawalMax;
@@ -91,7 +90,7 @@ contract StrategyDAICompoundBasic{
         address _vault = IController(controller).vaults(address(want));
         require(_vault != address(0), "!vault"); // additional protection so we don't burn the funds
 
-        IERC20(want).transfer(_vault, _amount -  _fee);
+        IERC20(want).transfer(_vault, _amount - _fee);
     }
 
     // Withdraw all funds, normally used when migrating strategies
@@ -109,16 +108,21 @@ contract StrategyDAICompoundBasic{
     function _withdrawAll() internal {
         uint256 amount = balanceC();
         if (amount > 0) {
-            _withdrawSome(balanceCInToken() -  1);
+            _withdrawSome(balanceCInToken() - 1);
         }
     }
 
     function harvest() public {
         require(msg.sender == strategist || msg.sender == governance, "!authorized");
         compound.claimComp(address(this));
+        // COMP that has just been claimed by this address
+        // accrued COMP can be claimed at any time
         uint256 _comp = IERC20(comp).balanceOf(address(this));
         if (_comp > 0) {
+            // approve(spender, amount) sets amount to be the highest quantity (allowance) of the tokens spender can spend
+            // approve(spender, 0) is a safety precaution
             IERC20(comp).approve(uni, 0);
+            // this is the actual allowance we want to give to spender
             IERC20(comp).approve(uni, _comp);
 
             address[] memory path = new address[](3);
@@ -126,12 +130,17 @@ contract StrategyDAICompoundBasic{
             path[1] = weth;
             path[2] = want;
 
+            // DECIDE MINIMUM LATER (uint256(0)). all or nothing? take anything?
+            // how much time is block.timestamp + 1800?
+            // can we set a gas limit?
             Uni(uni).swapExactTokensForTokens(_comp, uint256(0), path, address(this), block.timestamp + 1800);
         }
         uint256 _want = IERC20(want).balanceOf(address(this));
         if (_want > 0) {
             uint256 _fee = (_want * performanceFee) / performanceMax;
             IERC20(want).transfer(IController(controller).rewards(), _fee);
+            // after taking comp and swaping for want (DAI) we want to deposit want in order to earn interest on want
+            // otherwise it won't be compounding
             deposit();
         }
     }
@@ -140,7 +149,7 @@ contract StrategyDAICompoundBasic{
         uint256 b = balanceC();
         uint256 bT = balanceCInToken();
         // can have unintentional rounding errors
-        uint256 amount = ((b *_amount) / bT) + 1;
+        uint256 amount = ((b * _amount) / bT) + 1;
         uint256 _before = IERC20(want).balanceOf(address(this));
         _withdrawC(amount);
         uint256 _after = IERC20(want).balanceOf(address(this));

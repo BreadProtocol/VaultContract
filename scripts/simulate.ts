@@ -93,6 +93,9 @@ async function main(): Promise<void> {
   }
 
   async function redeemShares() {
+    console.log("Redeeming...")
+    const pricePerShare = await vaultContract.assetsPerShare();
+    console.log("Price Per Share", ethers.utils.formatUnits(pricePerShare.toString()));
     // balanceOf is called as a method of vaultcontract.
     // I believe vaultContract.balanceOf(deployer.address)
     // gets the balance of share tokens for the user with the account at deployer.address

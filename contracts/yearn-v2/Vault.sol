@@ -205,6 +205,11 @@ contract Vault is ERC20, IERC4626 {
 
         return supply == 0 ? shares : shares.mulDivDown(totalAssets(), totalSupply);
     }
+    
+    function previewSharePrice(uint256 shares) public view returns (uint256 amount) {
+        uint256 supply = totalSupply;
+        return supply == 0 ? shares : assetsPerShare();
+    }
 
     /*///////////////////////////////////////////////////////////////
                             YEARN V2 FUNCTIONS

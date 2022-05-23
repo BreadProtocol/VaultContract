@@ -7,6 +7,7 @@ dotenvConfig({ path: resolve(__dirname, "./.env") });
 import { HardhatUserConfig } from "hardhat/types";
 import { NetworkUserConfig } from "hardhat/types";
 
+import "hardhat-deploy";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
@@ -74,13 +75,16 @@ const config: HardhatUserConfig = {
         mnemonic: MNEMONIC,
       },
       chainId: chainIds.hardhat,
-      blockGasLimit: 28500000 // this is also eth mainnet current block limit
+      blockGasLimit: 28500000, // this is also eth mainnet current block limit
     },
     mainnet: createTestnetConfig("mainnet"),
     goerli: createTestnetConfig("goerli"),
     kovan: createTestnetConfig("kovan"),
     rinkeby: createTestnetConfig("rinkeby"),
     ropsten: createTestnetConfig("ropsten"),
+  },
+  namedAccounts: {
+    deployer: 0, // index
   },
   solidity: {
     compilers: [
@@ -95,7 +99,7 @@ const config: HardhatUserConfig = {
   gasReporter: {
     currency: "USD",
     gasPrice: 100,
-    // enabled: process.env.REPORT_GAS ? true : false,
+    enabled: process.env.REPORT_GAS ? true : false, // was commented out
   },
   typechain: {
     outDir: "typechain",

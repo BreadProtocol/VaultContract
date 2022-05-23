@@ -10,14 +10,14 @@ import "./interfaces/IController.sol";
 import "hardhat/console.sol";
 
 contract StrategyDAICompoundBasic {
-    address public constant want = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+    address public constant want = address(0x6B175474E89094C44Da98b954EedeAC495271d0F); // DAI
     // Comptroller address for compound.finance
     Comptroller public constant compound = Comptroller(0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B);
 
     address public constant comp = address(0xc00e94Cb662C3520282E6f5717214004A7f26888);
     address public constant cDAI = address(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
     address public constant uni = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-    // used for comp <> weth <> dai route
+    // used for comp <-> weth <-> dai route
     address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
     uint256 public performanceFee = 500; // 5 percent. 500 / 100 - 5

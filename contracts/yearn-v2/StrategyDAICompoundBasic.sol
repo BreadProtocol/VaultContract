@@ -143,7 +143,7 @@ contract StrategyDAICompoundBasic {
         if (_want > 0) {
             uint256 _fee = (_want * performanceFee) / performanceMax;
             IERC20(want).transfer(IController(controller).rewards(), _fee);
-            // after taking comp and swaping for want (DAI) we want to deposit want in order to earn interest on want
+            // after taking comp and swapping for want (DAI) we want to deposit want in order to earn interest on want
             // otherwise it won't be compounding
             deposit();
         }

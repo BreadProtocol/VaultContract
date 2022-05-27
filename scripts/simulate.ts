@@ -80,6 +80,8 @@ async function main(): Promise<void> {
     strategyContract = await strategyFactory.deploy(controllerContract.address);
     await controllerContract.setVault(DAI_ADDRESS, vaultContract.address);
     await controllerContract.approveStrategy(DAI_ADDRESS, strategyContract.address);
+    console.log("Strategy Contract Address is:");
+    console.log(strategyContract.address);
     await controllerContract.setStrategy(DAI_ADDRESS, strategyContract.address);
   }
 
@@ -167,6 +169,10 @@ async function main(): Promise<void> {
     // it gets the users share tokens (tokens because it is ERC4626 which inherits ERC20)
     const userShareTokenBalance = await vaultContract.balanceOf(deployer.address);
     console.log("userSharetoken", ethers.utils.formatUnits(userShareTokenBalance.toString()));
+    const previewRedeemPrint: BigNumber = await vaultContract.previewRedeem(userShareTokenBalance);
+    console.log("Value of User Shares: ", ethers.utils.formatUnits(previewRedeemPrint.toString()));
+    const previewSharePricePrint: BigNumber = await vaultContract.previewSharePrice(userShareTokenBalance);
+    console.log("Current Share Price: ", ethers.utils.formatUnits(previewSharePricePrint.toString()));
     // from my understanding of redeem (redeeming shares for equivalent underlying assets),
     // previewrRedeem does the same thing as redeem, but does not change the state of the blochain.
     // it's kind of like a 'safety check' to make sure you can actually redeem the input shares

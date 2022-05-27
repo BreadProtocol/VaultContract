@@ -390,6 +390,11 @@ contract Vault is ERC20, IERC4626 {
     function previewRedeem(uint256 shares) public view override returns (uint256) {
         return convertToAssets(shares) / decimalMult;
     }
+    
+    function previewSharePrice(uint256 shares) public view returns (uint256 amount) {
+        uint256 supply = totalSupply;
+        return supply == 0 ? shares : assetsPerShare();
+    }
 
     /////////////////////////OLD/////////////////////////////////
     // /// When redeemed, we need to be sure that

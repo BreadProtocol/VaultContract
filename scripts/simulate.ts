@@ -6,8 +6,10 @@ import { DAI_ABI } from "./abi/DAI";
 import { checkUserBalances, checkSingleBalance, vaultBalanceSheet, mineBlocks } from "./helpers/helpers";
 
 import hre from "hardhat";
+import { boolean } from "hardhat/internal/core/params/argumentTypes";
 
 const DAI_ADDRESS = "0x6b175474e89094c44da98b954eedeac495271d0f";
+const truflationMock = 11.4;
 
 async function main(): Promise<void> {
   let signers: SignerWithAddress[];
@@ -29,12 +31,23 @@ async function main(): Promise<void> {
 
   await transferDaiToSigners();
 
+  // CONVERTED to single user
   async function transferDaiToSigners() {
     const toMint = ethers.utils.parseEther("110000");
-    for (let i = 0; i < signers.length; i++) {
-      await DAIContract.transfer(signers[i].address, toMint);
-    }
+    await DAIContract.transfer(signers[0].address, toMint);
+    console.log("/////////////////////////USER/////////////////////////////////")
+    console.log(signers[0].address);
+    console.log("/////////////////////////USER/////////////////////////////////")
   }
+  
+  /////////////////////////OLD/////////////////////////////////
+  // async function transferDaiToSigners() {
+  //   const toMint = ethers.utils.parseEther("110000");
+  //   for (let i = 0; i < signers.length; i++) {
+  //     await DAIContract.transfer(signers[i].address, toMint);
+  //   }
+  // }
+  /////////////////////////OLD/////////////////////////////////
 
   await deployController();
   await deployVault();
@@ -47,6 +60,7 @@ async function main(): Promise<void> {
   async function deployController() {
     const controllerFactory = new Controller__factory(deployer);
     // rewards accumulated in Vault (set rewards later)
+    // controllerContract = await controllerFactory.deploy(deployer.address);
     controllerContract = await controllerFactory.deploy("0x0000000000000000000000000000000000000000");
   }
 
@@ -71,20 +85,70 @@ async function main(): Promise<void> {
 
   async function depositSomeUnderlyingToVault() {
     const depositAmount = ethers.utils.parseEther("10000");
-    for (let i = 0; i < signers.length; i++) {
-      const instanceERC = DAIContract.connect(signers[i]);
-      const instanceVAULT = vaultContract.connect(signers[i]);
-      await instanceERC.approve(vaultContract.address, depositAmount);
-      await instanceVAULT.deposit(depositAmount, signers[i].address);
-    }
-    await checkUserBalances(signers, vaultContract);
+    const sharesDesired = ethers.utils.parseEther("1894");
+    const instanceERC = DAIContract.connect(signers[0]);
+    const instanceVAULT = vaultContract.connect(signers[0]);
+    await instanceERC.approve(vaultContract.address, depositAmount);
+    await vaultContract.collateralCheck(depositAmount, sharesDesired);
+
+    const testRate = await vaultContract.previewCollateralRate(9999,1618);
+    console.log("TEST", ethers.utils.formatUnits(testRate.toString()));
+
+    const minimumCollateralTest = await vaultContract.minimumCollateral();
+    console.log("XMinimum Collateral Rate is", minimumCollateralTest.toString());
+
+    const previewCollateralRatePreview = await vaultContract.previewCollateralRate(depositAmount, sharesDesired);
+    console.log("XpreviewCollateralRatePreview...", previewCollateralRatePreview.toString());
+
+    console.log("XUser wants this many shares", ethers.utils.formatUnits(sharesDesired.toString()));
+    console.log("XUser wants to deposit this much DAI", ethers.utils.formatUnits(depositAmount.toString()));
+
+    const justTheRate = await vaultContract.returnCollateralRatePreview();
+    console.log("Just grabbing the rate...", justTheRate.toString());
+
+    const previewSharesAmountTest = await vaultContract.convertToShares(depositAmount);
+    console.log("XconvertToShares() test", ethers.utils.formatUnits(previewSharesAmountTest.toString()));
+
+    console.log("Just grabbing the rate...", justTheRate.toString());
+
+    await instanceVAULT.deposit(depositAmount, signers[0].address);
+    console.log("XUser has attempted to deposit", ethers.utils.formatUnits(depositAmount.toString()));
+
+    console.log("Just grabbing the rate...", justTheRate.toString());
+
+    const userAssets = await vaultContract.assetsOf(signers[0].address);
+    console.log("XUser's Actual Assets", ethers.utils.formatUnits(userAssets.toString()));
+
+    const previewSharesAmountTest2 = await vaultContract.convertToShares(userAssets);
+    console.log("XconvertToShares from actual assets", ethers.utils.formatUnits(previewSharesAmountTest2.toString()));
+
+    const initPricePerShare = await vaultContract.assetsPerShare();
+    console.log("Collateral Per Share:", ethers.utils.formatUnits(initPricePerShare.toString()));
+
+    await checkSingleBalance(deployer, vaultContract);
     await vaultBalanceSheet(vaultContract, strategyContract);
   }
+
+  /////////////////////////OLD/////////////////////////////////
+  // async function depositSomeUnderlyingToVault() {
+  //   const depositAmount = ethers.utils.parseEther("10000");
+  //   for (let i = 0; i < signers.length; i++) {
+  //     const instanceERC = DAIContract.connect(signers[i]);
+  //     const instanceVAULT = vaultContract.connect(signers[i]);
+  //     await instanceERC.approve(vaultContract.address, depositAmount);
+  //     await instanceVAULT.deposit(depositAmount, signers[i].address);
+  //     console.log("User has deposited", depositAmount.toString());
+  //   }
+  //   await checkUserBalances(signers, vaultContract);
+  //   await vaultBalanceSheet(vaultContract, strategyContract);
+  // }
+  /////////////////////////OLD/////////////////////////////////
+
 
   async function callEarnOnVault() {
     await vaultContract.earn();
     await mineBlocks();
-    await checkUserBalances(signers, vaultContract);
+    await checkSingleBalance(deployer, vaultContract);
   }
 
   async function callHarvestFromStrat() {
@@ -93,9 +157,10 @@ async function main(): Promise<void> {
   }
 
   async function redeemShares() {
-    console.log("Redeeming...")
     const pricePerShare = await vaultContract.assetsPerShare();
-    console.log("Price Per Share", ethers.utils.formatUnits(pricePerShare.toString()));
+    console.log("Collateral Per Share:", ethers.utils.formatUnits(pricePerShare.toString()));
+    const minimumCollateral = await vaultContract.minimumCollateral();
+    console.log("Minimum Collateral:", ethers.utils.formatUnits(minimumCollateral.toString()));
     // balanceOf is called as a method of vaultcontract.
     // I believe vaultContract.balanceOf(deployer.address)
     // gets the balance of share tokens for the user with the account at deployer.address
@@ -111,9 +176,41 @@ async function main(): Promise<void> {
     // in this instance, to and from are the same (deployer.address)
     // so this user is redeeming their shares and sending the assets to their account
     // the user can also send the assets redeemed to another user's account (a friend, or anyone)
-    await vaultContract.redeem(userShareTokenBalance, deployer.address, deployer.address); // amount, to, from
+    
+    const maxWithdrawTest = await vaultContract.maxWithdraw(deployer.address);
+    console.log("max withdraw", maxWithdrawTest.toString());
+
+    const maxRedeemTest = await vaultContract.maxRedeem(deployer.address);
+    console.log("max redeem", maxRedeemTest.toString());
+
+    // console.log("Withdrawing...")
+    // await vaultContract.withdraw(10002, deployer.address, deployer.address);
+    // await vaultContract.withdrawEverything(deployer.address, deployer.address);
+
+    
+    
+    
+    console.log("Redeeming...")
+    // const halfTokens = 199999;
+    // await vaultContract.redeem(halfTokens, deployer.address, deployer.address); // amount, to, from
+    // await vaultContract.redeem(userShareTokenBalance, deployer.address, deployer.address); // amount, to, from
+
+    await vaultContract.withdraw(9995, deployer.address, deployer.address);
+
     await checkSingleBalance(deployer, vaultContract);
     await vaultBalanceSheet(vaultContract, strategyContract);
+    console.log("Successfully Redeemed!")
+    console.log("Collateral Per Share:", ethers.utils.formatUnits(pricePerShare.toString()));
+    console.log("userSharetoken", ethers.utils.formatUnits(userShareTokenBalance.toString()));
+    await checkSingleBalance(deployer, vaultContract);
+    await vaultBalanceSheet(vaultContract, strategyContract);
+    const userTotalAssets = await vaultContract.maxWithdraw(deployer.address);
+    console.log("userTotalAssets", ethers.utils.formatUnits(userTotalAssets.toString()));
+    const userTotalShares = await vaultContract.maxRedeem(deployer.address);
+    console.log("userTotalShares", ethers.utils.formatUnits(userTotalShares.toString()));
+    const totalUnderlyingInVault = await vaultContract.totalAssets();
+    console.log("total Underlying in Vault", ethers.utils.formatUnits(totalUnderlyingInVault.toString()));
+    console.log("Collateral Per Share:", ethers.utils.formatUnits(pricePerShare.toString()));
   }
 }
 

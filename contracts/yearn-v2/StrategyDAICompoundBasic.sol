@@ -20,10 +20,14 @@ contract StrategyDAICompoundBasic {
     // used for comp <-> weth <-> dai route
     address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
-    uint256 public performanceFee = 500; // 5 percent. 500 / 100 - 5
+    // TEMP??
+    uint256 public performanceFee = 0; // 5 percent. 500 / 100 - 5
+    // uint256 public performanceFee = 500; // 5 percent. 500 / 100 - 5
     uint256 public constant performanceMax = 10000; // 100 percent
 
-    uint256 public withdrawalFee = 50;
+    // TEMP??
+    uint256 public withdrawalFee = 0;
+    // uint256 public withdrawalFee = 50;
     uint256 public constant withdrawalMax = 10000;
 
     address public governance;
@@ -139,7 +143,7 @@ contract StrategyDAICompoundBasic {
         if (_want > 0) {
             uint256 _fee = (_want * performanceFee) / performanceMax;
             IERC20(want).transfer(IController(controller).rewards(), _fee);
-            // after taking comp and swaping for want (DAI) we want to deposit want in order to earn interest on want
+            // after taking comp and swapping for want (DAI) we want to deposit want in order to earn interest on want
             // otherwise it won't be compounding
             deposit();
         }

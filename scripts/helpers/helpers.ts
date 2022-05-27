@@ -3,10 +3,12 @@ import { Contract } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 export async function checkUserBalances(signers: SignerWithAddress[], vaultContract: Contract) {
-    for (let i = 0; i <= signers.slice(0, 3).length; i++) {
-      const vaultInstance = vaultContract.connect(signers[i]);
-      const userUnderlyingInVault = await vaultInstance.assetsOf(signers[i].address);
-      const userSharesFromUnderlying = await vaultInstance.previewRedeem(userUnderlyingInVault);
+    // for (let i = 0; i <= signers.slice(0, 3).length; i++) {
+      const vaultInstance = vaultContract.connect(signers[0]);
+      const userUnderlyingInVault = await vaultInstance.assetsOf(signers[0].address);
+      // below was changed from previewRedeem() to previewWithdraw(), 
+      // redeem is for shares, and withdraw is for assets
+      const userSharesFromUnderlying = await vaultInstance.previewWithdraw(userUnderlyingInVault);
       const totalUnderlyingInVault = await vaultInstance.totalAssets();
       const availableInVaultOutsideStrat = await vaultInstance.freeFloat();
       const result =
@@ -19,13 +21,16 @@ export async function checkUserBalances(signers: SignerWithAddress[], vaultContr
         " user sharesFromUnderlying: " +
         ethers.utils.formatUnits(userSharesFromUnderlying.toString());
       console.log(result);
-    }
+// }
   }
 
 export async function checkSingleBalance(signer: SignerWithAddress, vaultContract: Contract) {
       const vaultInstance = vaultContract.connect(signer);
+      // NOTE: assetsOf() is the same as previewRedeem and dependent on collateral rate
       const userUnderlyingInVault = await vaultInstance.assetsOf(signer.address);
-      const userSharesFromUnderlying = await vaultInstance.previewRedeem(userUnderlyingInVault);
+      // below was changed from previewRedeem() to previewWithdraw(), 
+      // redeem is for shares, and withdraw is for assets
+      const userSharesFromUnderlying = await vaultInstance.previewWithdraw(userUnderlyingInVault);
       const totalUnderlyingInVault = await vaultInstance.totalAssets();
       const availableInVaultOutsideStrat = await vaultInstance.freeFloat();
       const result =
@@ -37,11 +42,14 @@ export async function checkSingleBalance(signer: SignerWithAddress, vaultContrac
         ethers.utils.formatUnits(userUnderlyingInVault.toString()) +
         " user sharesFromUnderlying: " +
         ethers.utils.formatUnits(userSharesFromUnderlying.toString());
+      console.log("/////////////////////////////////////USER BALANCE SHEET/////////////////////////////////////////////")
       console.log(result);
+      console.log("/////////////////////////////////////USER BALANCE SHEET/////////////////////////////////////////////")
     
   }
 
 export async function vaultBalanceSheet(vaultContract: Contract, strategyContract: Contract) {
+    console.log("/////////////////////////////////////VAULT BALANCE SHEET/////////////////////////////////////////////")
     const balance = await vaultContract.totalAssets();
     console.log("totalAssets():", ethers.utils.formatUnits(balance.toString()))
 
@@ -59,6 +67,7 @@ export async function vaultBalanceSheet(vaultContract: Contract, strategyContrac
 
     const balanceCInToken = await strategyContract.balanceCInToken()
     console.log("strategy balanceCInToken:", ethers.utils.formatUnits(balanceCInToken.toString()));
+    console.log("/////////////////////////////////////VAULT BALANCE SHEET/////////////////////////////////////////////")
   }
 
 export async function mineBlocks() {

@@ -40,6 +40,18 @@ library FixedPointMathLib {
             // Store x * y in z for now.
             z := mul(x, y)
 
+            // EXAMPLE: 
+            // x = 5
+            // y = 10
+            // d = 2
+            // z = x * y = 50
+            // denominator can't be 0 (Don't divide by 0!!)
+            // at the IF this example returns true and true, requirement is fulfilled, 
+            // z = z / d = 25
+            // it is safe to return
+            // Return z
+            // 25
+
             // Equivalent to require(denominator != 0 && (x == 0 || (x * y) / x == y))
             if iszero(and(iszero(iszero(denominator)), or(iszero(x), eq(div(z, x), y)))) {
                 revert(0, 0)
@@ -47,6 +59,7 @@ library FixedPointMathLib {
 
             // Divide z by the denominator.
             z := div(z, denominator)
+            
         }
     }
 
@@ -56,6 +69,13 @@ library FixedPointMathLib {
         uint256 denominator
     ) internal pure returns (uint256 z) {
         assembly {
+
+            // x = 5
+            // y = 10
+            // d = 2
+            // this example returns true and true, requirement is fulfilled, 
+            // z = 50
+
             // Store x * y in z for now.
             z := mul(x, y)
 
@@ -67,6 +87,14 @@ library FixedPointMathLib {
             // First, divide z - 1 by the denominator and add 1.
             // Then multiply it by 0 if z is zero, or 1 otherwise.
             z := mul(iszero(iszero(z)), add(div(sub(z, 1), denominator), 1))
+
+            // z - 1 = 49
+            // 49 / 2 = 24.5
+            // 24.5 + 1 = 25.5
+            // z != 0, so...
+            // 25.5 * 1 = 25.5
+
+            // 25.5 is safe to return
         }
     }
 

@@ -22,11 +22,11 @@ contract Vault is ERC20, IERC4626 {
     uint256 public constant maxFloat = 10000;
 
     // TEST TEST TEST TEST TEST TEST TEST TEST - State Variables
-    int256 public truflationMock = 1140;
-    int256 public yieldMock = 274;
     uint256 public minBuffer = 15000;
     uint256 public collateralRatePreview;
     uint256 public decimalMult = 10000;
+    int256 public truflationMock = 1140;
+    int256 public yieldMock = 510;
     // TEST TEST TEST TEST TEST TEST TEST TEST
 
     address public controller;
@@ -59,18 +59,39 @@ contract Vault is ERC20, IERC4626 {
         shares = previewDeposit(amount);
         require(shares != 0, "ZERO_SHARES");
 
-        // mint after deposit
+        // mints the tokens for the user: user underlyingInVault and sharesFromUnderlying are 0 without it
         _mint(to, shares);
-        // Increase the total float
+
+        // Increase the total float, functions well at least for increase
         /// TASK is this supposed to increase shares?
-        
         totalFloat += amount;
 
+        // Removing this didn't affect anything
+        // It's probably just for the front end
         emit Deposit(msg.sender, to, amount, shares);
 
+        // TEMP TEMP
         asset.safeTransferFrom(msg.sender, address(this), amount);
 
         afterDeposit(amount);
+    }
+
+    function justDeposit(uint256 amount, address to) public returns (uint256) {
+        require(collateralCheck(amount, 0) == true, "UNDER_COLLATERALIZED");
+
+        // Increase the total float, functions well at least for increase
+        /// TASK is this supposed to increase shares?
+        totalFloat += amount;
+
+        // Removing this didn't affect anything
+        // It's probably just for the front end
+        emit Deposit(msg.sender, to, amount, 0);
+
+        // TEMP TEMP
+        asset.safeTransferFrom(msg.sender, address(this), amount);
+
+        afterDeposit(amount);
+        return previewCollateralRate(amount, 0);
     }
 
     // user wants a fixed amount of shares (input)
@@ -203,7 +224,9 @@ contract Vault is ERC20, IERC4626 {
     }
 
     function assetsOf(address user) public view override returns (uint256) {
-        return previewRedeem(balanceOf[user]);
+        // TEMP TEMP
+        return idleFloat() + IController(controller).balanceOf(address(asset));
+        // return previewRedeem(balanceOf[user]);
     }
 
     function assetsPerShare() public view override returns (uint256) {
@@ -218,6 +241,8 @@ contract Vault is ERC20, IERC4626 {
     /// @notice Available to move to strategy. Leave some tokens idle.
     /// @dev Remember, totalFloat returns ALL shares supply, even if underlying is locked outside of Vault.
     function freeFloat() public view returns (uint256) {
+        
+        // return totalFloat;
         return (totalFloat * minFloat) / maxFloat;
     }
 
@@ -233,6 +258,7 @@ contract Vault is ERC20, IERC4626 {
     }
 
     function maxWithdraw(address user) public view override returns (uint256) {
+        // this is a calculated balance from user.address => shares => assets
         return assetsOf(user);
     }
 
@@ -324,6 +350,11 @@ contract Vault is ERC20, IERC4626 {
             /// that calls convertToShares()
                 /// convert to shares, uses collateralRatePreview to get desired amount of shares
 
+    function setMocks(int256 tru, int256 yield) public {
+        truflationMock = tru;
+        yieldMock = yield;
+    }
+
     function minimumCollateral() public view returns (uint256) {
         // INFO this takes the truflation and yield mocks to return the
         // minimum acceptable collateral rate
@@ -342,10 +373,6 @@ contract Vault is ERC20, IERC4626 {
         // INFO this takes the assets and desired shares to mint and returns 
         // what the collateral rate would be
         return (((totalAssets() + assets) * decimalMult) / (totalSupply + shares));
-
-    }
-
-    function impliedTokenPrice() public view returns (uint256) {
 
     }
 

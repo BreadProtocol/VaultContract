@@ -36,20 +36,23 @@ export async function checkSingleBalance(signer: SignerWithAddress, vaultContrac
       const result =
         "totalAssets()" +
         ethers.utils.formatUnits(totalUnderlyingInVault) +
-        " freeFloat(): " +
+        "\nfreeFloat(): " +
         ethers.utils.formatUnits(availableInVaultOutsideStrat) +
-        " user underlyingInVault: " +
+        "\nuser underlyingInVault: " +
         ethers.utils.formatUnits(userUnderlyingInVault.toString()) +
-        " user sharesFromUnderlying: " +
+        "\nuser sharesFromUnderlying: " +
         ethers.utils.formatUnits(userSharesFromUnderlying.toString());
-      console.log("/////////////////////////////////////USER BALANCE SHEET/////////////////////////////////////////////")
+      console.log("\n\n/////////////////////////////////////USER BALANCE SHEET/////////////////////////////////////////////")
+      console.log("````````````````````````````````````````````````````````````````````````````````````````````````````")
       console.log(result);
+      console.log(",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,")
       console.log("/////////////////////////////////////USER BALANCE SHEET/////////////////////////////////////////////")
     
   }
 
 export async function vaultBalanceSheet(vaultContract: Contract, strategyContract: Contract) {
-    console.log("/////////////////////////////////////VAULT BALANCE SHEET/////////////////////////////////////////////")
+    console.log("\n\n/////////////////////////////////////VAULT BALANCE SHEET/////////////////////////////////////////////")
+    console.log("`````````````````````````````````````````````````````````````````````````````````````````````````````")
     const balance = await vaultContract.totalAssets();
     console.log("totalAssets():", ethers.utils.formatUnits(balance.toString()))
 
@@ -67,12 +70,18 @@ export async function vaultBalanceSheet(vaultContract: Contract, strategyContrac
 
     const balanceCInToken = await strategyContract.balanceCInToken()
     console.log("strategy balanceCInToken:", ethers.utils.formatUnits(balanceCInToken.toString()));
+    console.log(",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,")
     console.log("/////////////////////////////////////VAULT BALANCE SHEET/////////////////////////////////////////////")
   }
 
 export async function mineBlocks() {
+    console.log("\n\n////////////////////////MINING////////////////////////////////")
+    console.log("``````````````````````````````````````````````````````````````")
     for (let index = 0; index < 10; index++) {
       console.log("mining block", index);
       await ethers.provider.send("evm_mine", []);
     }
+    console.log(",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,")
+    console.log("////////////////////////MINING////////////////////////////////")
+    console.log(" ")
   }
